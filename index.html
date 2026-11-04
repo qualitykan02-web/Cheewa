@@ -1,0 +1,478 @@
+<title>สถานชีวาภิบาล Dashboard</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Prompt:wght@500;600;700&family=Sarabun:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: wave hero with scene illustration → two sheet tabs (1 ภาพรวม, 2 รายการ) → cards with donut charts + hover tooltips */
+:root{
+  --pink:#E8438A; --pink-soft:#FDE8F1; --pink-deep:#C2185B;
+  --green:#1FA463; --green-soft:#E1F5EA; --green-deep:#12794A;
+  --blue:#1E88D8; --blue-soft:#E3F1FC; --blue-deep:#145F9E;
+  --yellow:#F6B81B; --yellow-soft:#FFF3CC; --yellow-deep:#9A6B00;
+  --red:#D93A5C;
+  --ink:#1D3A4C; --ink-2:#5B7384; --line:#E3EBF1; --bg:#F6FAFC; --card:#FFFFFF;
+  --f-display:'Prompt','Sarabun',system-ui,sans-serif;
+  --f-body:'Sarabun','Noto Sans Thai',system-ui,sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.55;margin:0}
+h1,h2,h3{font-family:var(--f-display);margin:0;text-wrap:balance}
+.wrap{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+/* hero */
+.hero{background:linear-gradient(135deg,#FFE1EE 0%,#FBE7F4 32%,#E4F1FF 68%,#DFF5EA 100%);color:var(--ink);position:relative;overflow:hidden}
+.hero .wrap{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:center;padding-block:10px 44px}
+.hero h1{font-size:clamp(28px,4.6vw,46px);line-height:1.2;font-weight:700;color:var(--pink-deep)}
+.hero .sub{margin:8px 0 18px;font-size:clamp(15px,2vw,18px);color:var(--ink-2)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.chip{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.78);border:1px solid rgba(194,24,91,.15);color:var(--ink);border-radius:999px;padding:5px 12px;font-size:13.5px;font-weight:600}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--green);box-shadow:0 0 0 0 rgba(31,164,99,.6);animation:pulse 2s infinite}
+.dot.off{background:var(--yellow);animation:none}
+@keyframes pulse{70%{box-shadow:0 0 0 8px rgba(31,164,99,0)}100%{box-shadow:0 0 0 0 rgba(31,164,99,0)}}
+.btn{font:inherit;font-weight:600;border:0;border-radius:999px;padding:5px 16px;background:var(--pink);color:#fff;cursor:pointer}
+.btn:focus-visible,.tab:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--yellow);outline-offset:2px}
+.hero svg.art{width:100%;max-width:440px;height:auto;justify-self:end}
+.wave{position:absolute;left:0;right:0;bottom:-1px;height:36px;display:block;width:100%}
+
+main{padding-block:0 40px;margin-top:-22px;position:relative}
+.tabs{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px}
+.tab{font-family:var(--f-display);font-weight:600;font-size:15px;border:1.5px solid var(--line);background:#fff;color:var(--ink-2);border-radius:14px;padding:10px 20px;cursor:pointer;box-shadow:0 4px 12px rgba(30,80,110,.07)}
+.tab[aria-selected="true"]{background:var(--pink);border-color:var(--pink);color:#fff}
+.grid{display:grid;gap:16px}
+.kpis{grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:0 6px 18px rgba(30,80,110,.06);min-width:0}
+.kpi{display:flex;gap:14px;align-items:center}
+.ic{flex:none;border-radius:16px;display:grid;place-items:center;background:rgba(255,255,255,.88)}
+.kpi .ic{width:58px;height:58px}
+.kpi .ic svg{width:36px;height:36px}
+.kpi .n{font-family:var(--f-display);font-weight:700;font-size:34px;line-height:1;font-variant-numeric:tabular-nums}
+.kpi .l{font-size:13.5px;color:var(--ink-2);margin-top:4px}
+/* พื้นหลังการ์ดโทนพาสเทลอ่อน */
+.c-pink,.t-pink{background:#FFF1F7;border-color:#F9D6E5}
+.c-green,.t-green{background:#EFF9F3;border-color:#CFEBDC}
+.c-blue,.t-blue{background:#EEF6FD;border-color:#CFE3F5}
+.c-yellow,.t-yellow{background:#FFF9E4;border-color:#F5E6AE}
+.t-red{background:#FFF0F3;border-color:#F7CDD6}
+.t-red .n{color:var(--red)}
+.note{color:var(--ink);font-weight:500}
+.note b{color:var(--pink-deep)}
+.t-pink .n{color:var(--pink-deep)} .t-green .n{color:var(--green-deep)} .t-yellow .n{color:var(--yellow-deep)} .t-blue .n{color:var(--blue-deep)}
+
+.sec{margin-top:26px}
+.sec>h2{font-size:20px;display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.sec>h2::before{content:"";width:6px;height:22px;border-radius:3px;background:var(--pink)}
+.sec.g>h2::before{background:var(--green)} .sec.b>h2::before{background:var(--blue)} .sec.y>h2::before{background:var(--yellow)}
+.ch{display:flex;gap:12px;align-items:center;margin-bottom:12px}
+.ch .ic{width:46px;height:46px;border-radius:14px}
+.ch .ic svg{width:30px;height:30px}
+.ch h3{font-size:16px;line-height:1.3}
+
+.two{grid-template-columns:1fr 1fr}
+.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+.donutbox{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.donut{width:170px;height:170px;flex:none;overflow:visible}
+.donut text{font-family:var(--f-display);font-weight:700;fill:var(--ink)}
+.donut .seg{cursor:pointer;transition:stroke-width .15s}
+.donut .seg:hover{stroke-width:7.4}
+.legend{list-style:none;margin:0;padding:0;display:grid;gap:8px;flex:1;min-width:150px}
+.legend li{display:flex;align-items:center;gap:8px;font-size:14px}
+.legend b{margin-left:auto;font-variant-numeric:tabular-nums;white-space:nowrap}
+.legend em{font-style:normal;color:var(--ink-2);font-weight:500;margin-left:4px}
+.sw{width:12px;height:12px;border-radius:4px;flex:none}
+.bars{display:grid;gap:10px}
+.bar{display:grid;grid-template-columns:minmax(80px,140px) 1fr 40px;gap:10px;align-items:center;font-size:14px;cursor:default}
+.bar .tr{height:18px;background:#EDF3F7;border-radius:9px;overflow:hidden}
+.bar .tr i{display:block;height:100%;border-radius:9px;transition:width .7s,filter .15s}
+.bar:hover .tr i{filter:brightness(1.08) saturate(1.1)}
+.bar b{text-align:right;font-variant-numeric:tabular-nums}
+
+.tools{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px}
+.tools input,.tools select{font:inherit;border:1.5px solid var(--line);border-radius:12px;padding:8px 12px;background:#fff;color:var(--ink);min-width:0}
+.tools input{flex:1 1 220px}
+.tablewrap{overflow-x:auto;border-radius:12px}
+table{width:100%;border-collapse:collapse;min-width:800px;font-size:14px}
+th{background:rgba(255,255,255,.88);color:var(--blue-deep);text-align:left;font-weight:700;padding:10px 12px;white-space:nowrap}
+th.c,td.c{text-align:center}
+td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
+tr:hover td{background:rgba(255,255,255,.7)}
+td.nm{font-weight:600;min-width:240px}
+td.no{width:64px;text-align:center;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.pill{display:inline-block;border-radius:999px;padding:2px 10px;font-size:12.5px;font-weight:700;white-space:nowrap}
+.p-fail{background:#FDE6EB;color:var(--red)}
+.p-ok{background:var(--green-soft);color:var(--green-deep)} .p-wait{background:var(--yellow-soft);color:var(--yellow-deep)} .p-other{background:#EDF3F7;color:var(--ink-2)}
+.yes{color:var(--green-deep);font-weight:700;white-space:nowrap} .nos{color:var(--red);font-weight:700;white-space:nowrap}
+.empty{text-align:center;color:var(--ink-2);padding:26px}
+.foot{margin-top:26px;color:var(--ink-2);font-size:13px;display:flex;flex-wrap:wrap;gap:6px 18px;justify-content:space-between}
+#tip{position:fixed;z-index:50;pointer-events:none;background:var(--ink);color:#fff;border-radius:12px;padding:8px 12px;font-size:13.5px;line-height:1.45;box-shadow:0 8px 22px rgba(20,40,60,.25);max-width:260px}
+#tip b{font-family:var(--f-display)}
+#tip .pc{color:#FFE27A;font-weight:700}
+
+@media (max-width:900px){
+  .hero .wrap{grid-template-columns:1fr;padding-block:22px 48px}
+  .hero svg.art{max-width:340px;justify-self:center;order:-1}
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .two,.three{grid-template-columns:1fr}
+}
+@media (max-width:420px){.kpi{flex-direction:column;align-items:flex-start;gap:8px}.kpi .n{font-size:28px}.bar{grid-template-columns:90px 1fr 34px}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<header class="hero">
+  <div class="wrap">
+    <div>
+      <h1>สถานชีวาภิบาล Dashboard</h1>
+      <p class="sub" id="province">ข้อมูลสถานชีวาภิบาล</p>
+      <div class="chips">
+        <span class="chip" id="upd">อัปเดตล่าสุด –</span>
+        <button class="btn" id="refresh" type="button">Refresh</button>
+      </div>
+    </div>
+    <!-- hero scene: chedi + ubosot (temple), health building, monk, elder with caregiver, villagers, trees, lotus -->
+    <svg class="art" viewBox="0 0 460 320" role="img" aria-label="ภาพประกอบวัด อาคารบริการสุขภาพ พระสงฆ์ และผู้คนในชุมชน">
+      <defs>
+        <radialGradient id="fadeG" cx="0.5" cy="0.56" r="0.7"><stop offset="0.76" stop-color="#fff"/><stop offset="1" stop-color="#000"/></radialGradient>
+        <mask id="fade" maskUnits="userSpaceOnUse" x="0" y="0" width="460" height="320"><rect width="460" height="320" fill="url(#fadeG)"/></mask>
+      </defs>
+      <g mask="url(#fade)">
+      <circle cx="380" cy="62" r="42" fill="#FFE9A0"/>
+      <circle cx="380" cy="62" r="27" fill="#F6B81B"/>
+      <path d="M20 90c20-10 40-10 60 0s40 10 60 0" stroke="#F7C4DA" stroke-width="5" stroke-linecap="round" fill="none"/>
+      <path d="M230 40c18-9 36-9 54 0" stroke="#BFDDF7" stroke-width="5" stroke-linecap="round" fill="none"/>
+      <ellipse cx="230" cy="304" rx="228" ry="28" fill="#BFE8D2"/>
+      <ellipse cx="80" cy="298" rx="130" ry="30" fill="#7FD1A5"/>
+      <ellipse cx="400" cy="300" rx="120" ry="28" fill="#4FBF86"/>
+      <!-- trees -->
+      <g><rect x="16" y="246" width="7" height="40" rx="3" fill="#8A5A3C"/><circle cx="20" cy="236" r="24" fill="#2FA36B"/><circle cx="32" cy="246" r="16" fill="#46BB82"/></g>
+      <!-- chedi -->
+      <g>
+        <rect x="68" y="238" width="52" height="40" fill="#FFE27A"/>
+        <polygon points="72,238 116,238 108,214 80,214" fill="#F6B81B"/>
+        <path d="M80 214c0-34 28-34 28 0z" fill="#FFD34D"/>
+        <rect x="88" y="190" width="12" height="8" fill="#F6B81B"/>
+        <polygon points="94,150 99,190 89,190" fill="#F6B81B"/>
+        <circle cx="94" cy="148" r="3" fill="#E8438A"/>
+        <path d="M68 250h52M72 262h44" stroke="#fff" stroke-width="2" opacity=".6"/>
+      </g>
+      <!-- ubosot -->
+      <g>
+        <rect x="146" y="214" width="150" height="64" fill="#fff"/>
+        <rect x="146" y="270" width="150" height="8" fill="#E3F1FC"/>
+        <polygon points="130,218 221,166 312,218" fill="#E8438A"/>
+        <polygon points="160,196 221,148 282,196" fill="#F6B81B"/>
+        <polygon points="217,134 221,148 225,134 221,120" fill="#F6B81B"/>
+        <path d="M130 218l-8-8 14 3zM312 218l8-8-14 3z" fill="#E8438A"/>
+        <path d="M160 196l-8-8 14 3zM282 196l8-8-14 3z" fill="#F6B81B"/>
+        <rect x="205" y="232" width="32" height="46" rx="16" fill="#1E88D8"/>
+        <rect x="156" y="230" width="8" height="40" fill="#F6B81B"/><rect x="278" y="230" width="8" height="40" fill="#F6B81B"/>
+        <rect x="172" y="236" width="22" height="24" rx="4" fill="#E3F1FC"/><rect x="248" y="236" width="22" height="24" rx="4" fill="#E3F1FC"/>
+      </g>
+      <!-- health building -->
+      <g>
+        <rect x="320" y="156" width="104" height="122" rx="6" fill="#E3F1FC"/>
+        <rect x="320" y="156" width="104" height="18" rx="6" fill="#1E88D8"/>
+        <circle cx="372" cy="138" r="15" fill="#1FA463"/>
+        <path d="M372 130v16M364 138h16" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
+        <g fill="#8EC5EE"><rect x="332" y="184" width="18" height="16" rx="2"/><rect x="363" y="184" width="18" height="16" rx="2"/><rect x="394" y="184" width="18" height="16" rx="2"/><rect x="332" y="210" width="18" height="16" rx="2"/><rect x="363" y="210" width="18" height="16" rx="2"/><rect x="394" y="210" width="18" height="16" rx="2"/></g>
+        <rect x="360" y="244" width="26" height="34" rx="3" fill="#1E88D8"/>
+        <path d="M373 244v34" stroke="#E3F1FC" stroke-width="2"/>
+      </g>
+      <!-- monk -->
+      <g>
+        <circle cx="48" cy="236" r="11" fill="#F2C9A0"/>
+        <rect x="32" y="248" width="32" height="42" rx="14" fill="#F28C28"/>
+        <path d="M32 262l32 14v10L32 274z" fill="#D9731A"/>
+        <ellipse cx="66" cy="272" rx="8" ry="6" fill="#5B4636"/>
+      </g>
+      <!-- villagers in front of temple -->
+      <g><circle cx="184" cy="266" r="9" fill="#F2C9A0"/><path d="M175 262c2-9 16-9 18 0z" fill="#3B2F2F"/><rect x="173" y="276" width="22" height="22" rx="10" fill="#E8438A"/></g>
+      <g><circle cx="258" cy="268" r="8" fill="#F2C9A0"/><path d="M250 264c2-8 14-8 16 0z" fill="#3B2F2F"/><rect x="249" y="277" width="19" height="21" rx="9" fill="#1E88D8"/></g>
+      <g><circle cx="216" cy="282" r="6" fill="#F2C9A0"/><rect x="209" y="289" width="14" height="12" rx="6" fill="#F6B81B"/></g>
+      <!-- elder with cane + caregiver -->
+      <g>
+        <circle cx="338" cy="262" r="10" fill="#F2C9A0"/><path d="M329 258c2-10 16-10 18 0z" fill="#E9EEF2"/>
+        <rect x="326" y="272" width="24" height="26" rx="11" fill="#F6B81B"/>
+        <path d="M356 278v22" stroke="#5B7384" stroke-width="3" stroke-linecap="round"/>
+        <circle cx="402" cy="258" r="10" fill="#F2C9A0"/><path d="M392 254c2-10 18-10 20 0z" fill="#3B2F2F"/>
+        <rect x="390" y="268" width="26" height="30" rx="12" fill="#1FA463"/>
+        <path d="M350 284l40-4" stroke="#F2C9A0" stroke-width="5" stroke-linecap="round"/>
+      </g>
+      <!-- lotus -->
+      <g transform="translate(446 292)"><ellipse cx="0" cy="-8" rx="7" ry="16" fill="#FF9EC4"/><ellipse cx="-11" cy="-4" rx="6" ry="13" fill="#F06BA1" transform="rotate(-30 -11 -4)"/><ellipse cx="11" cy="-4" rx="6" ry="13" fill="#F06BA1" transform="rotate(30 11 -4)"/></g>
+      <g transform="translate(150 300)"><ellipse cx="0" cy="-6" rx="5" ry="11" fill="#FF9EC4"/><ellipse cx="-8" cy="-3" rx="4.500" ry="9" fill="#F06BA1" transform="rotate(-30 -8 -3)"/><ellipse cx="8" cy="-3" rx="4.500" ry="9" fill="#F06BA1" transform="rotate(30 8 -3)"/></g>
+      </g>
+    </svg>
+  </div>
+  <svg class="wave" viewBox="0 0 1200 36" preserveAspectRatio="none" aria-hidden="true"><path d="M0 36V14C150 36 300 0 500 14s350 22 700 0v22z" fill="#F6FAFC"/></svg>
+</header>
+
+<main class="wrap">
+  <nav class="tabs" role="tablist" aria-label="เลือกหน้า">
+    <button class="tab" role="tab" id="tab-overview" data-tab="overview" aria-selected="true" type="button">1. ภาพรวมสถานชีวาภิบาล</button>
+    <button class="tab" role="tab" id="tab-list" data-tab="list" aria-selected="false" type="button">2. รายการสถานชีวาภิบาล</button>
+  </nav>
+
+  <!-- Sheet 1 -->
+  <div class="panel" id="panel-overview" role="tabpanel" aria-labelledby="tab-overview">
+    <section class="grid kpis" id="kpis"></section>
+
+    <section class="sec b">
+      <h2>ประเภทสถานชีวาภิบาลและสถานะการรับรอง</h2>
+      <div class="grid two">
+        <div class="card">
+          <div class="ch"><div class="ic" style="background:var(--pink-soft)" id="icType"></div><h3>ประเภทสถานชีวาภิบาล</h3></div>
+          <div class="donutbox" id="typeBox"></div>
+        </div>
+        <div class="card">
+          <div class="ch"><div class="ic" style="background:var(--green-soft)" id="icStatus"></div><h3>สถานะการรับรอง</h3></div>
+          <div class="donutbox" id="statusBox"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="sec y">
+      <h2>จำนวนสถานชีวาภิบาลแยกตามอำเภอ</h2>
+      <div class="card"><div class="bars" id="districtBars"></div></div>
+    </section>
+  </div>
+
+  <!-- Sheet 2 -->
+  <div class="panel" id="panel-list" role="tabpanel" aria-labelledby="tab-list" hidden>
+    <section class="sec g" style="margin-top:0">
+      <h2>การบริการของสถานชีวาภิบาล</h2>
+      <div class="grid three" id="svc"></div>
+    </section>
+
+    <section class="sec">
+      <h2>ตารางรายชื่อสถานชีวาภิบาล</h2>
+      <div class="card c-blue">
+        <div class="tools">
+          <input id="q" type="search" placeholder="ค้นหาชื่อ ตำบล หรืออำเภอ">
+          <select id="fd" aria-label="กรองอำเภอ"><option value="">ทุกอำเภอ</option></select>
+          <select id="ft" aria-label="กรองประเภท"><option value="">ทุกประเภท</option></select>
+          <select id="fs" aria-label="กรองสถานะ"><option value="">ทุกสถานะ</option></select>
+        </div>
+        <div class="tablewrap">
+          <table>
+            <thead><tr>
+              <th class="c">ลำดับ</th><th>ชื่อสถานชีวาภิบาล</th><th>ตำบล</th><th>อำเภอ</th><th>ประเภท</th>
+              <th class="c">ด้านส่งเสริม<br>ป้องกันสุขภาพ</th><th class="c">ด้านการดูแล<br>ระยะยาว</th><th class="c">ด้านประคับประคอง<br>หรือระยะท้าย</th><th>สถานะ</th>
+            </tr></thead>
+            <tbody id="rows"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="foot"><span class="note"><b>หมายเหตุ:</b> ข้อมูล ณ วันที่ <span id="noteDate">4 พฤศจิกายน 2569</span></span><span id="srcNote">แหล่งข้อมูล: Google Sheet</span><span id="count"></span></div>
+</main>
+<div id="tip" hidden></div>
+
+<script>
+/* ===== ตั้งค่าการเชื่อมต่อ Google Sheet ===== */
+const CONFIG = {
+  SHEET_ID: '1HREwNQ6BidpSBsfoIitDoUrkLnywTQIAvJcxbJ9wAUc',
+  GID: '0',
+  REFRESH_SECONDS: 45   // ดึงซ้ำอัตโนมัติ (แนะนำ 30–60 วินาที)
+};
+/* ข้อมูลตั้งต้นจากชีต ใช้แสดงระหว่างที่ยังดึงข้อมูลสดไม่ได้ */
+const SNAPSHOT = {
+  title:'ข้อมูลสถานชีวาภิบาล จังหวัดกาญจนบุรี',
+  asOf:'4 พฤศจิกายน 2569',
+  rows:[
+    ['กาญจนบุรี','เมืองกาญจนบุรี','วังด้ง','ศูนย์สุขภาพพระภิกษุสงฆ์ในสมเด็จพระสังฆราชองค์ที่ 19 (วังด้ง)','ชุมชน','/','มี','มี','มี','ผ่านการรับรอง'],
+    ['กาญจนบุรี','เมืองกาญจนบุรี','ลาดหญ้า','สถานสงเคราะห์คนชราเฉลิมราชกุมารี (หลวงพ่อลำใย)','ชุมชน','/','มี','มี','มี','ผ่านการรับรอง'],
+    ['กาญจนบุรี','ทองผาภูมิ','ท่าขนุน','กุฏิชีวาภิบาล วัดเวฬุวัน','ศาสนสถาน (วัด, มัสยิด, โบสถ์)','/','ไม่มี','มี','มี','อยู่ระหว่างการรับรอง']
+  ]
+};
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmt = p => (Math.round(p*10)/10).toString();
+const PAL = ['#E8438A','#1FA463','#1E88D8','#F6B81B','#8E6BD8','#F0803C'];
+/* กราฟวงกลมใช้โทนเขียว-เหลือง: ชุมชน = เขียว, ศาสนสถาน = เหลือง */
+const EXTRA = ['#8BC34A','#0E7C4A','#F2D45C'];
+const typeColor = (name,i)=> name==='ชุมชน' ? '#1FA463' : name==='ศาสนสถาน' ? '#F6B81B' : EXTRA[i%EXTRA.length];
+const statusColor = (name,i)=>{ const c=stClass(name); return c==='ok'?'#1FA463':c==='wait'?'#F6B81B':c==='fail'?'#D93A5C':EXTRA[i%EXTRA.length]; };
+let state = {title:'', rows:[], live:false, lastHash:'', updated:null};
+let countdown = CONFIG.REFRESH_SECONDS, busy = false;
+
+function parseCSV(text){
+  const out=[]; let row=[], cur='', q=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(q){ if(c==='"'){ if(text[i+1]==='"'){cur+='"';i++} else q=false } else cur+=c }
+    else if(c==='"') q=true;
+    else if(c===','){ row.push(cur); cur='' }
+    else if(c==='\n'||c==='\r'){ if(c==='\r'&&text[i+1]==='\n') i++; row.push(cur); out.push(row); row=[]; cur='' }
+    else cur+=c;
+  }
+  if(cur!==''||row.length){ row.push(cur); out.push(row) }
+  return out;
+}
+const isSvc = v => /^(มี|ไม่มี)$/.test((v||'').trim());
+function toModel(table){
+  const title = (table[0]||[]).find(c=>c && c.trim()) || '';
+  /* คอลัมน์: A จังหวัด B อำเภอ C ตำบล D ชื่อ E ประเภท F ลงทะเบียน G-I บริการ 3 ด้าน J สถานะ */
+  const rows = table.map(r=>r.map(c=>(c||'').trim()))
+    .filter(r => r[3] && (isSvc(r[6])||isSvc(r[7])||isSvc(r[8])))
+    .map(r => r.slice(0,10));
+  /* ถ้าในชีตมีเซลล์ข้อความ "ข้อมูล ณ วันที่ ..." จะนำวันที่นั้นมาแสดงเป็นหมายเหตุ */
+  let asOf='';
+  for(const r of table){ for(const c of r){ const m=/ข้อมูล\s*ณ\s*วันที่\s*(.+)/.exec(c||''); if(m){ asOf=m[1].trim(); break } } if(asOf) break }
+  return {title, rows, asOf};
+}
+async function fetchSheet(){
+  const id=CONFIG.SHEET_ID, gid=CONFIG.GID, t=Date.now();
+  const urls=[
+    `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv&gid=${gid}&headers=0&_=${t}`,
+    `https://docs.google.com/spreadsheets/d/${id}/export?format=csv&gid=${gid}&_=${t}`
+  ];
+  let lastErr;
+  for(const u of urls){
+    try{
+      const res = await fetch(u,{cache:'no-store'});
+      if(!res.ok) throw new Error('HTTP '+res.status);
+      const txt = await res.text();
+      if(/^\s*<(!doctype|html)/i.test(txt)) throw new Error('ชีตไม่ได้เปิดสิทธิ์ดู');
+      return toModel(parseCSV(txt));
+    }catch(e){ lastErr=e }
+  }
+  throw lastErr;
+}
+
+async function load(manual){
+  if(busy) return; busy=true; countdown=CONFIG.REFRESH_SECONDS;
+  try{
+    const m = await fetchSheet();
+    state.live=true; state.updated=new Date(); state.asOf=m.asOf||'';
+    const h = JSON.stringify(m);
+    if(h!==state.lastHash){ state.lastHash=h; state.title=m.title; state.rows=m.rows; render(); }
+  }catch(e){
+    state.live=false; state.updated=new Date();
+    if(!state.rows.length){ state.title=SNAPSHOT.title; state.rows=SNAPSHOT.rows; state.asOf=SNAPSHOT.asOf; state.lastHash='snap'; render(); }
+  }
+  busy=false; status();
+}
+function status(){
+  const u=state.updated, tz='Asia/Bangkok';
+  $('upd').textContent = u ? 'อัปเดตล่าสุด '+u.toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'numeric',timeZone:tz})+' เวลา '+u.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false,timeZone:tz})+' น.' : 'อัปเดตล่าสุด –';
+  $('noteDate').textContent = state.asOf || (state.live&&u ? u.toLocaleDateString('th-TH',{day:'numeric',month:'long',year:'numeric',timeZone:tz}) : '4 พฤศจิกายน 2569');
+  $('srcNote').textContent = state.live ? `แหล่งข้อมูล: Google Sheet · ดึงซ้ำทุก ${CONFIG.REFRESH_SECONDS} วินาที (รีเฟรชอีก ${countdown} วินาที)` : 'แหล่งข้อมูล: Google Sheet';
+}
+
+const shortType = t => (t||'ไม่ระบุ').replace(/\s*\(.*\)\s*/,'').trim()||'ไม่ระบุ';
+const stClass = s => /ไม่ผ่าน/.test(s) ? 'fail' : /ผ่าน/.test(s) ? 'ok' : /ระหว่าง/.test(s) ? 'wait' : 'other';
+const countBy = (arr,fn)=>{const m=new Map();arr.forEach(x=>{const k=fn(x);m.set(k,(m.get(k)||0)+1)});return [...m.entries()].sort((a,b)=>b[1]-a[1])};
+
+const ICON = {
+  heartbeat:'<svg viewBox="0 0 40 40"><path d="M20 35C8 27 5 20 5 14.5 5 9.5 9 6 13.5 6c3 0 5.5 1.6 6.5 4 1-2.4 3.5-4 6.5-4C31 6 35 9.5 35 14.5 35 20 32 27 20 35z" fill="#E8438A"/><path d="M8 20h6.500l2.500-6 4.500 12 3-8 2 2H32" fill="none" stroke="#fff" stroke-width="2.400" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  cross:'<svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="14" fill="#D93A5C"/><path d="m14 14 12 12M26 14 14 26" stroke="#fff" stroke-width="3.400" stroke-linecap="round"/></svg>',
+  building:'<svg viewBox="0 0 40 40"><rect x="8" y="12" width="24" height="22" rx="3" fill="#E8438A"/><rect x="8" y="12" width="24" height="6" rx="3" fill="#C2185B"/><g fill="#fff"><rect x="12" y="21" width="5" height="5" rx="1"/><rect x="23" y="21" width="5" height="5" rx="1"/><rect x="17.500" y="28" width="5" height="6" rx="1"/></g><path d="M20 4v7M16.500 7.500h7" stroke="#1FA463" stroke-width="3" stroke-linecap="round"/></svg>',
+  check:'<svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="14" fill="#1FA463"/><path d="m13 20.500 5 5 9-10" fill="none" stroke="#fff" stroke-width="3.400" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  hour:'<svg viewBox="0 0 40 40"><path d="M11 6h18M11 34h18" stroke="#F6B81B" stroke-width="3.400" stroke-linecap="round"/><path d="M13 6c0 9 14 9 14 14S13 25 13 34M27 6c0 9-14 9-14 14s14 5 14 14" fill="none" stroke="#F6B81B" stroke-width="3" stroke-linecap="round"/><path d="M15 31c2-4 8-4 10 0z" fill="#F6B81B"/></svg>',
+  pin:'<svg viewBox="0 0 40 40"><path d="M20 35S8 24 8 16a12 12 0 0 1 24 0c0 8-12 19-12 19z" fill="#1E88D8"/><circle cx="20" cy="16" r="5" fill="#fff"/></svg>',
+  temple:'<svg viewBox="0 0 40 40"><polygon points="4,24 20,12 36,24" fill="#E8438A"/><polygon points="10,18 20,9 30,18" fill="#F6B81B"/><polygon points="19,3 20,9 21,3 20,1" fill="#F6B81B"/><rect x="8" y="24" width="24" height="11" fill="#fff" stroke="#F2C2D8" stroke-width="1"/><rect x="17" y="27" width="6" height="8" rx="3" fill="#1E88D8"/></svg>',
+  monk:'<svg viewBox="0 0 40 40"><circle cx="20" cy="10" r="6" fill="#F2C9A0"/><rect x="11" y="17" width="18" height="20" rx="8" fill="#F28C28"/><path d="M11 24l18 8v4L11 29z" fill="#D9731A"/></svg>',
+  elder:'<svg viewBox="0 0 40 40"><circle cx="17" cy="9" r="5" fill="#1E88D8"/><path d="M13 16h8l2 9h-5l-1 10h-4l1-14z" fill="#1E88D8"/><path d="M26 18v17M24 35h5" stroke="#F6B81B" stroke-width="3" stroke-linecap="round"/></svg>',
+  people:'<svg viewBox="0 0 40 40"><circle cx="14" cy="11" r="5" fill="#1FA463"/><rect x="7" y="18" width="14" height="16" rx="7" fill="#1FA463"/><circle cx="27" cy="13" r="4.500" fill="#1E88D8"/><rect x="21" y="19" width="12" height="15" rx="6" fill="#1E88D8"/></svg>'
+};
+
+function donut(entries,total,colorOf,label){
+  let acc=0, segs='', labs='';
+  entries.forEach(([k,v],i)=>{
+    if(!v) return;
+    const p=v/total*100, col=colorOf(k,i);
+    segs+=`<circle class="seg" data-tip="${esc(k)}|${v}|${fmt(p)}" cx="21" cy="21" r="15.9155" fill="none" stroke="${col}" stroke-width="6" stroke-dasharray="${p} ${100-p}" stroke-dashoffset="${25-acc}"></circle>`;
+    if(p>=6){
+      const mid=(acc+p/2)/100*2*Math.PI-Math.PI/2;
+      const x=21+15.9155*Math.cos(mid), y=21+15.9155*Math.sin(mid)+1.1;
+      labs+=`<text x="${x.toFixed(2)}" y="${y.toFixed(2)}" text-anchor="middle" font-size="3.600" pointer-events="none" style="fill:${col==='#F6B81B'?'#1D3A4C':'#fff'}">${v}</text>`;
+    }
+    acc+=p;
+  });
+  const svg=`<svg class="donut" viewBox="0 0 42 42" role="img" aria-label="${esc(label)}"><circle cx="21" cy="21" r="15.9155" fill="none" stroke="#EDF3F7" stroke-width="6"/>${segs}${labs}<text x="21" y="21.500" text-anchor="middle" font-size="7.500" pointer-events="none">${total}</text><text x="21" y="26.500" text-anchor="middle" font-size="2.800" pointer-events="none" style="font-family:var(--f-body);font-weight:500;fill:#5B7384">แห่ง</text></svg>`;
+  const lg=`<ul class="legend">${entries.map(([k,v],i)=>`<li data-tip="${esc(k)}|${v}|${fmt(total?v/total*100:0)}"><span class="sw" style="background:${colorOf(k,i)}"></span>${esc(k)}<b>${v}<em>${fmt(total?v/total*100:0)}%</em></b></li>`).join('')}</ul>`;
+  return svg+lg;
+}
+
+function render(){
+  const R=state.rows, n=R.length;
+  $('province').textContent = state.title || 'ข้อมูลสถานชีวาภิบาล';
+  const certified=R.filter(r=>stClass(r[9])==='ok').length;
+  const pending=R.filter(r=>stClass(r[9])==='wait').length;
+  const failed=R.filter(r=>stClass(r[9])==='fail').length;
+  const districts=new Set(R.map(r=>r[1]).filter(Boolean)).size;
+  const kp=(cls,ic,num,lab)=>`<div class="card kpi t-${cls}"><div class="ic">${ic}</div><div><div class="n">${num}</div><div class="l">${lab}</div></div></div>`;
+  $('kpis').innerHTML = kp('pink',ICON.building,n,'สถานชีวาภิบาลทั้งหมด (แห่ง)')+kp('green',ICON.check,certified,'ผ่านการรับรอง')+kp('yellow',ICON.hour,pending,'อยู่ระหว่างการรับรอง')+kp('red',ICON.cross,failed,'ไม่ผ่านการรับรอง')+kp('blue',ICON.pin,districts,'อำเภอที่มีสถานชีวาภิบาล');
+  $('icType').innerHTML=ICON.temple; $('icStatus').innerHTML=ICON.check;
+
+  const typeOrder=['ศาสนสถาน','ชุมชน',...new Set(R.map(r=>shortType(r[4])).filter(t=>t!=='ศาสนสถาน'&&t!=='ชุมชน'))];
+  const types=typeOrder.map(t=>[t,R.filter(r=>shortType(r[4])===t).length]);
+  $('typeBox').innerHTML = n?donut(types,n,typeColor,'สัดส่วนประเภทสถานชีวาภิบาล'):'<div class="empty">ยังไม่มีข้อมูล</div>';
+  const sts=[['ผ่านการรับรอง',certified],['อยู่ระหว่างการรับรอง',pending],['ไม่ผ่านการรับรอง',failed],...countBy(R.filter(r=>stClass(r[9])==='other'),r=>r[9]||'ไม่ระบุ')];
+  $('statusBox').innerHTML = n?donut(sts,n,statusColor,'สัดส่วนสถานะการรับรอง'):'<div class="empty">ยังไม่มีข้อมูล</div>';
+
+  const ds=countBy(R,r=>r[1]||'ไม่ระบุ'), mx=ds.length?ds[0][1]:1;
+  $('districtBars').innerHTML = ds.map(([k,v],i)=>`<div class="bar" data-tip="${esc(k)}|${v}|${fmt(n?v/n*100:0)}"><span>${esc(k)}</span><div class="tr"><i style="width:${v/mx*100}%;background:${i%2?'#1E88D8':'#E8438A'}"></i></div><b>${v}</b></div>`).join('')||'<div class="empty">ยังไม่มีข้อมูล</div>';
+
+  const svcs=[['ด้านส่งเสริมป้องกันสุขภาพ',6,ICON.people,'green'],['ด้านการดูแลระยะยาว',7,ICON.elder,'blue'],['ด้านการดูแลระยะประคับประคองหรือระยะท้าย',8,ICON.heartbeat,'pink']];
+  $('svc').innerHTML = svcs.map(([name,ci,ic,bg])=>{
+    const withSvc=R.filter(r=>r[ci]==='มี'), has=withSvc.length;
+    const ents=typeOrder.map(t=>[t,withSvc.filter(r=>shortType(r[4])===t).length]);
+    return `<div class="card c-${bg}"><div class="ch"><div class="ic">${ic}</div><h3>${name}</h3></div><div class="donutbox">${donut(ents,has,typeColor,name)}</div></div>`;
+  }).join('');
+
+  fillSel('fd',[...new Set(R.map(r=>r[1]).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'th')));
+  fillSel('ft',[...new Set(R.map(r=>shortType(r[4])))]);
+  fillSel('fs',[...new Set(R.map(r=>r[9]).filter(Boolean))]);
+  table();
+}
+function fillSel(id,vals){
+  const el=$(id), cur=el.value, first=el.options[0].outerHTML;
+  el.innerHTML=first+vals.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('');
+  if(vals.includes(cur)) el.value=cur;
+}
+function table(){
+  const q=$('q').value.trim().toLowerCase(), d=$('fd').value, t=$('ft').value, s=$('fs').value;
+  const list=state.rows.filter(r=>(!d||r[1]===d)&&(!t||shortType(r[4])===t)&&(!s||r[9]===s)&&(!q||[r[2],r[1],r[3]].join(' ').toLowerCase().includes(q)));
+  const sv=v=>v==='มี'?'<span class="yes">✓ มี</span>':'<span class="nos">✗ ไม่มี</span>';
+  $('rows').innerHTML = list.map((r,i)=>`<tr><td class="no">${i+1}</td><td class="nm">${esc(r[3])}</td><td>${esc(r[2])}</td><td>${esc(r[1])}</td><td>${esc(shortType(r[4]))}</td><td class="c">${sv(r[6])}</td><td class="c">${sv(r[7])}</td><td class="c">${sv(r[8])}</td><td><span class="pill p-${stClass(r[9])}">${esc(r[9]||'ไม่ระบุ')}</span></td></tr>`).join('') || '<tr><td colspan="9" class="empty">ไม่พบข้อมูลที่ตรงกับตัวกรอง</td></tr>';
+  $('count').textContent=`แสดง ${list.length} จาก ${state.rows.length} แห่ง`;
+}
+['q','fd','ft','fs'].forEach(id=>$(id).addEventListener('input',table));
+$('refresh').addEventListener('click',()=>load(true));
+
+/* แท็บ: Sheet 1 / Sheet 2 */
+function showTab(name){
+  if(name!=='list') name='overview';
+  document.querySelectorAll('.tab').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.tab===name)));
+  $('panel-overview').hidden = name!=='overview';
+  $('panel-list').hidden = name!=='list';
+}
+document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>{ showTab(b.dataset.tab); try{history.replaceState(null,'','#'+b.dataset.tab)}catch(e){ location.hash=b.dataset.tab } }));
+window.addEventListener('hashchange',()=>showTab(location.hash.slice(1)));
+showTab(location.hash.slice(1));
+
+/* Tooltip เมื่อชี้เมาส์ที่กราฟ */
+const tip=$('tip');
+function moveTip(e){
+  const t=e.target.closest&&e.target.closest('[data-tip]');
+  if(!t){ tip.hidden=true; return }
+  const [k,v,p]=t.dataset.tip.split('|');
+  tip.innerHTML=`<b>${k}</b><br>จำนวน ${v} แห่ง · <span class="pc">${p}%</span>`;
+  tip.hidden=false;
+  const w=tip.offsetWidth, h=tip.offsetHeight;
+  let x=e.clientX+14, y=e.clientY+16;
+  if(x+w>innerWidth-8) x=e.clientX-w-14;
+  if(y+h>innerHeight-8) y=e.clientY-h-14;
+  tip.style.left=Math.max(8,x)+'px'; tip.style.top=Math.max(8,y)+'px';
+}
+document.addEventListener('pointermove',moveTip);
+document.addEventListener('pointerdown',moveTip);
+document.addEventListener('scroll',()=>{tip.hidden=true},true);
+
+load();
+setInterval(()=>{ if(document.hidden) return; countdown--; if(countdown<=0) load(); else status(); },1000);
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden && countdown<CONFIG.REFRESH_SECONDS-5) load(); });
+</script>
